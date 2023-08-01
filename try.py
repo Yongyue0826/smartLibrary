@@ -4,13 +4,6 @@ import subprocess
 file_path = "./videoTest.py"
 file_path2 = "./opyl_detection.py"
 
-
 # Execute the file
 subprocess.call(["python", file_path])
 subprocess.call(["python", file_path2])
-
-
-
-
-
-

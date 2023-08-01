@@ -9,46 +9,6 @@ import numpy as np #new added
 import openpyxl
 from openpyxl import Workbook
 
-# Function to write keypoints to Excel
-def write_keypoints_to_excel(right_keypoint, left_keypoint):
-    # Check if the Excel file exists
-    if not os.path.exists('keypoint_coordinates.xlsx'):
-        # Create a new Excel workbook if the file doesn't exist
-        workbook = Workbook()
-        # Write the header
-        sheet = workbook.active
-        sheet.cell(row=1, column=1, value="Filename")
-        sheet.cell(row=1, column=2, value="Right x")
-        sheet.cell(row=1, column=3, value="Right y")
-        sheet.cell(row=1, column=4, value="Left x")
-        sheet.cell(row=1, column=5, value="Left y")
-    else:
-        # Load the existing Excel file
-        workbook = openpyxl.load_workbook('keypoint_coordinates.xlsx')
-        sheet = workbook.active
-
-    
-    # Find the last row in the sheet
-    last_row = sheet.max_row + 1
-
-    # Extract the x-coordinate, y-coordinate, and confidence score of the keypoints
-    right_x_coordinate = right_keypoint[0]
-    right_y_coordinate = right_keypoint[1]
-    right_confidence_score = right_keypoint[2]
-    left_x_coordinate = left_keypoint[0]
-    left_y_coordinate = left_keypoint[1]
-    left_confidence_score = left_keypoint[2]
-
-    # Write the keypoints to the Excel sheet
-    sheet.cell(row=last_row, column=1, value= saved_filename)
-    sheet.cell(row=last_row, column=2, value=right_x_coordinate)
-    sheet.cell(row=last_row, column=3, value=right_y_coordinate)
-    sheet.cell(row=last_row, column=4, value=left_x_coordinate)
-    sheet.cell(row=last_row, column=5, value=left_y_coordinate)
-
-    # Save the Excel file
-    workbook.save('keypoint_coordinates.xlsx')
-
 def get_latest_gallery_directory(base_path):
     # Find the latest gallery directory number
     i = 1
@@ -68,7 +28,38 @@ def get_new_filename(base_path):
         if not os.path.exists(filename):
             return filename
         i += 1
-        
+       
+def write_keypoints_to_excel(right_keypoint, left_keypoint, saved_filename):
+    base_directory = "../../../yolov7/inference/detectImg"
+    latest_gallery_directory = get_latest_gallery_directory(base_directory)
+
+     # Construct the path to the latest Excel file
+    excel_file_path = os.path.join(latest_gallery_directory, 'keypoint_coordinates.xlsx')
+
+    # Load the existing Excel file
+    workbook = openpyxl.load_workbook(excel_file_path)
+    sheet = workbook.active
+
+    # Find the last row in the sheet
+    last_row = sheet.max_row + 1
+
+    # Extract the x-coordinate, y-coordinate, and confidence score of the keypoints
+    right_x_coordinate = right_keypoint[0]
+    right_y_coordinate = right_keypoint[1]
+    left_x_coordinate = left_keypoint[0]
+    left_y_coordinate = left_keypoint[1]
+
+    # Write the keypoints to the Excel sheet
+    sheet.cell(row=last_row, column=1, value=saved_filename)
+    sheet.cell(row=last_row, column=2, value=right_x_coordinate)
+    sheet.cell(row=last_row, column=3, value=right_y_coordinate)
+    sheet.cell(row=last_row, column=4, value=left_x_coordinate)
+    sheet.cell(row=last_row, column=5, value=left_y_coordinate)
+
+    # Save the Excel file
+    workbook.save(excel_file_path)
+
+
 try:
     # Import Openpose (Windows/Ubuntu/OSX)
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -143,27 +134,7 @@ try:
     print("Right Keypoint coordinate: (", right_keypoint[0], ",", right_keypoint[1], ")")
     print("Left Keypoint coordinate: (", left_keypoint[0], ",", left_keypoint[1], ")")
 
-    
-    # # Save Image
-    # base_directory = '../../../yolov7/inference/video'
-    # latest_gallery_directory = get_latest_gallery_directory(base_directory)
 
-    # folder_dir = latest_gallery_directory
-
-    # saved_filename = os.path.basename()
-
-    # result = cv2.imwrite(saved_path, datum.cvOutputData)
-
-    # # Write keypoints to Excel
-    # write_keypoints_to_excel(right_keypoint, left_keypoint)
-
-    # if result:
-    #     print("File saved successfully with file name:", saved_filename)
-    # else:
-    #     print("Error in saving file")
-
-    # Save Image
-    #saved_path = r"..\results\output.jpg"
     base_directory = '../../../yolov7/inference/detectImg'
     latest_gallery_directory = get_latest_gallery_directory(base_directory)
 
@@ -182,8 +153,8 @@ try:
     # Your existing code for saving the image
     result = cv2.imwrite(saved_path, datum.cvOutputData)
 
-    # Write keypoints to Excel
-    write_keypoints_to_excel(right_keypoint, left_keypoint)
+    # Write keypoints to Excel file
+    write_keypoints_to_excel(right_keypoint, left_keypoint, saved_filename)
 
     if result==True:
         print("File saved successfully with file name:", saved_filename)

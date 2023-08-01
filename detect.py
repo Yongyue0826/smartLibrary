@@ -22,6 +22,19 @@ import openpyxl
 openpose_test_dir = os.path.join(os.path.dirname(__file__), "..", "openpose", "examples", "tutorial_api_python")
 sys.path.append(openpose_test_dir)
 
+def get_latest_excel_file(base_directory):
+    excel_version = 1
+    latest_excel_file = None
+
+    while True:
+        excel_file_name = os.path.join(base_directory, f'keypoint_coordinates_v{excel_version}.xlsx')
+        if not os.path.exists(excel_file_name):
+            break
+        latest_excel_file = excel_file_name
+        excel_version += 1
+
+    return latest_excel_file
+
 def get_latest_gallery_directory(base_path):
     # Find the latest gallery directory number
     i = 1
@@ -37,8 +50,11 @@ def get_latest_gallery_directory(base_path):
 def read_keypoints_from_excel(filename):
     keypoints_data = []
 
-    # Specify the full path to the Excel file
-    excel_file_path = os.path.join('../openpose/examples/tutorial_api_python', 'keypoint_coordinates.xlsx')
+    base_directory = "inference/detectImg"
+    latest_gallery_directory = get_latest_gallery_directory(base_directory)
+
+     # Construct the path to the latest Excel file
+    excel_file_path = os.path.join(latest_gallery_directory, 'keypoint_coordinates.xlsx')
 
     # Check if the Excel file exists
     if not os.path.exists(excel_file_path):
@@ -78,14 +94,15 @@ def detect(save_img=False):
     # Directories
     #save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
     #(save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
-    yolo_base_directory = "runs/detect"
+    yolo_base_directory = "inference/detectImg"
     yolo_latest_gallery_directory = get_latest_gallery_directory(yolo_base_directory)
+    result_directory_path = os.path.join(yolo_latest_gallery_directory, "result")
 
     if not yolo_latest_gallery_directory:
         print("No gallery directory found.")
         return
 
-    save_dir = Path(yolo_latest_gallery_directory)
+    save_dir = Path(result_directory_path)
     if save_txt:
          (save_dir / 'labels').mkdir(exist_ok=True)
     

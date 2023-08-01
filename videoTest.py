@@ -20,7 +20,7 @@ try:
 except OSError:
     print("Error: Creating Directory of Data")
 
-desired_time_interval = 5  # Set the desired time interval in seconds (e.g., 2 seconds)
+desired_time_interval = 2  # Set the desired time interval in seconds (e.g., 2 seconds)
 fps = video.get(cv2.CAP_PROP_FPS)
 frame_interval = int(fps * desired_time_interval)
 current_frame = 0

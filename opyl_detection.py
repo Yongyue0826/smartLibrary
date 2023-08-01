@@ -5,6 +5,8 @@
 import subprocess
 import os
 from os import listdir
+import openpyxl
+
 
 def get_latest_gallery_directory(base_path):
     # Find the latest gallery directory number
@@ -27,14 +29,37 @@ def get_next_gallery_directory(base_path):
             return gallery_path
         i += 1
 
+def create_empty_excel_file(base_directory):
+
+    # Create the new Excel file
+    excel_file_name = os.path.join(base_directory, f'keypoint_coordinates.xlsx')
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+
+    # Write the header
+    sheet.cell(row=1, column=1, value="Filename")
+    sheet.cell(row=1, column=2, value="Right x")
+    sheet.cell(row=1, column=3, value="Right y")
+    sheet.cell(row=1, column=4, value="Left x")
+    sheet.cell(row=1, column=5, value="Left y")
+
+    # Save the Excel file
+    workbook.save(excel_file_name)
+
+    return excel_file_name
 
 def yolov7():
     os.chdir("../../../yolov7")
     # creating new yolo output gallery directory
     try:
-        yolo_base_directory = 'runs/detect'
-        yolo_gallery_directory = get_next_gallery_directory(yolo_base_directory)
-        os.makedirs(yolo_gallery_directory)
+        yolo_base_directory = 'inference/detectImg'
+        yolo_gallery_directory = get_latest_gallery_directory(yolo_base_directory)
+        # os.makedirs(yolo_gallery_directory)
+        result_directory_name = "result"
+        result_directory_path = os.path.join(yolo_gallery_directory, result_directory_name)
+        os.makedirs(result_directory_path)
+
+
 
     except OSError:
         print("Error: Creating Directory of Data")
@@ -69,14 +94,17 @@ def openpose():
         openpose_gallery_directory = get_next_gallery_directory(openpose_base_directory)
         os.makedirs(openpose_gallery_directory)
 
+        excel_file_name = create_empty_excel_file(openpose_gallery_directory)
+        print(f"Excel file created: {excel_file_name}")
+        
     except OSError:
         print("Error: Creating Directory of Data")
         
     # Change the working directory
     os.chdir("openpose/examples/tutorial_api_python")
     # Checking the lastest gallery directory which going to go through openpose detection
-    openpose_base_directory = '../../../yolov7/inference/video'
-    openpose_latest_gallery_directory = get_latest_gallery_directory(openpose_base_directory)
+    openpose_detection_base_directory = '../../../yolov7/inference/video'
+    openpose_latest_gallery_directory = get_latest_gallery_directory(openpose_detection_base_directory)
 
     if not openpose_latest_gallery_directory:
         print("No gallery directory found.")
