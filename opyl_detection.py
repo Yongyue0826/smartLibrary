@@ -38,10 +38,14 @@ def create_empty_excel_file(base_directory):
 
     # Write the header
     sheet.cell(row=1, column=1, value="Filename")
-    sheet.cell(row=1, column=2, value="Right x")
-    sheet.cell(row=1, column=3, value="Right y")
-    sheet.cell(row=1, column=4, value="Left x")
-    sheet.cell(row=1, column=5, value="Left y")
+    sheet.cell(row=1, column=2, value="Right_buffer_x1")
+    sheet.cell(row=1, column=3, value="Right_buffer_y1")
+    sheet.cell(row=1, column=4, value="Right_buffer_x2")
+    sheet.cell(row=1, column=5, value="Right_buffer_y2")
+    sheet.cell(row=1, column=6, value="Left_buffer_x1")
+    sheet.cell(row=1, column=7, value="Left_buffer_y1")
+    sheet.cell(row=1, column=8, value="Left_buffer_x2")
+    sheet.cell(row=1, column=9, value="Left_buffer_y2")
 
     # Save the Excel file
     workbook.save(excel_file_name)

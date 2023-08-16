@@ -1,5 +1,6 @@
 import cv2
 import os
+import imutils
 
 def get_next_gallery_directory(base_path):
     # Find the last gallery directory number and increment it
@@ -20,7 +21,7 @@ try:
 except OSError:
     print("Error: Creating Directory of Data")
 
-desired_time_interval = 2  # Set the desired time interval in seconds (e.g., 2 seconds)
+desired_time_interval = 1  # Set the desired time interval in seconds (e.g., 2 seconds)
 fps = video.get(cv2.CAP_PROP_FPS)
 frame_interval = int(fps * desired_time_interval)
 current_frame = 0
@@ -32,7 +33,8 @@ while True:
             name = os.path.join(gallery_directory, f'frame{current_frame}.jpg')
             print("Creating..." + name)
 
-            cv2.imwrite(name, frame)
+            resize = imutils.resize(frame, width=(int(frame.shape[1] / 2)), height=(int(frame.shape[0] / 2)))
+            cv2.imwrite(name, resize)
 
         current_frame += 1
     else:

@@ -29,7 +29,7 @@ def get_new_filename(base_path):
             return filename
         i += 1
        
-def write_keypoints_to_excel(right_keypoint, left_keypoint, saved_filename):
+def write_keypoints_to_excel(right_buffer_coords, left_buffer_coords, saved_filename):
     base_directory = "../../../yolov7/inference/detectImg"
     latest_gallery_directory = get_latest_gallery_directory(base_directory)
 
@@ -43,18 +43,16 @@ def write_keypoints_to_excel(right_keypoint, left_keypoint, saved_filename):
     # Find the last row in the sheet
     last_row = sheet.max_row + 1
 
-    # Extract the x-coordinate, y-coordinate, and confidence score of the keypoints
-    right_x_coordinate = right_keypoint[0]
-    right_y_coordinate = right_keypoint[1]
-    left_x_coordinate = left_keypoint[0]
-    left_y_coordinate = left_keypoint[1]
-
-    # Write the keypoints to the Excel sheet
+    # Write the buffer coordinates to the Excel sheet
     sheet.cell(row=last_row, column=1, value=saved_filename)
-    sheet.cell(row=last_row, column=2, value=right_x_coordinate)
-    sheet.cell(row=last_row, column=3, value=right_y_coordinate)
-    sheet.cell(row=last_row, column=4, value=left_x_coordinate)
-    sheet.cell(row=last_row, column=5, value=left_y_coordinate)
+    sheet.cell(row=last_row, column=2, value=right_buffer_coords[0])
+    sheet.cell(row=last_row, column=3, value=right_buffer_coords[1])
+    sheet.cell(row=last_row, column=4, value=right_buffer_coords[2])
+    sheet.cell(row=last_row, column=5, value=right_buffer_coords[3])
+    sheet.cell(row=last_row, column=6, value=left_buffer_coords[0])
+    sheet.cell(row=last_row, column=7, value=left_buffer_coords[1])
+    sheet.cell(row=last_row, column=8, value=left_buffer_coords[2])
+    sheet.cell(row=last_row, column=9, value=left_buffer_coords[3])
 
     # Save the Excel file
     workbook.save(excel_file_path)
@@ -130,10 +128,38 @@ try:
     right_keypoint = datum.poseKeypoints[0][right_keypoint_index]
     left_keypoint = datum.poseKeypoints[0][left_keypoint_index]
 
+    # Convert keypoints to integer coordinates
+    right_x, right_y = int(right_keypoint[0]), int(right_keypoint[1])
+    left_x, left_y = int(left_keypoint[0]), int(left_keypoint[1])
+
     # Print the extracted values
     print("Right Keypoint coordinate: (", right_keypoint[0], ",", right_keypoint[1], ")")
     print("Left Keypoint coordinate: (", left_keypoint[0], ",", left_keypoint[1], ")")
 
+   # Set the buffer rectangle size and line thickness
+    buffer_width = 20  # Width of the buffer rectangle
+    buffer_height = 40  # Height of the buffer rectangle
+    buffer_thickness = 2  # Thickness of the buffer rectangle line
+
+    # Calculate buffer rectangle coordinates
+    right_buffer_x1 = right_x - buffer_width // 2
+    right_buffer_y1 = right_y - buffer_height // 2
+    right_buffer_x2 = right_x + buffer_width // 2
+    right_buffer_y2 = right_y + buffer_height // 2
+
+    # Calculate buffer rectangle coordinates
+    left_buffer_x1 = left_x - buffer_width // 2
+    left_buffer_y1 = left_y - buffer_height // 2
+    left_buffer_x2 = left_x + buffer_width // 2
+    left_buffer_y2 = left_y + buffer_height // 2
+
+    # Draw buffer rectangle on the image
+    new = cv2.rectangle(datum.cvOutputData, (right_buffer_x1, right_buffer_y1), (right_buffer_x2, right_buffer_y2), (0, 0, 255), buffer_thickness)
+    new = cv2.rectangle(new, (left_buffer_x1, left_buffer_y1), (left_buffer_x2, left_buffer_y2), (0, 0, 255), buffer_thickness)
+
+    #cv2.imshow("Image with Buffer Rectangle", new)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     base_directory = '../../../yolov7/inference/detectImg'
     latest_gallery_directory = get_latest_gallery_directory(base_directory)
@@ -151,10 +177,13 @@ try:
     saved_path = os.path.join(folder_dir, saved_filename)
 
     # Your existing code for saving the image
-    result = cv2.imwrite(saved_path, datum.cvOutputData)
+    result = cv2.imwrite(saved_path, new)
 
     # Write keypoints to Excel file
-    write_keypoints_to_excel(right_keypoint, left_keypoint, saved_filename)
+    right_buffer_coords = (right_buffer_x1, right_buffer_y1, right_buffer_x2, right_buffer_y2)
+    left_buffer_coords = (left_buffer_x1, left_buffer_y1, left_buffer_x2, left_buffer_y2)
+    write_keypoints_to_excel(right_buffer_coords, left_buffer_coords, saved_filename)
+    #write_keypoints_to_excel(right_keypoint, left_keypoint, saved_filename)
 
     if result==True:
         print("File saved successfully with file name:", saved_filename)
@@ -164,7 +193,6 @@ try:
 except Exception as e:
     print(e)
     sys.exit(-1)
-
 
 
 

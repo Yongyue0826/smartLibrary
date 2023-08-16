@@ -17,10 +17,34 @@ from utils.torch_utils import select_device, load_classifier, time_synchronized,
 import sys
 import os
 import openpyxl
+import imutils
 
 # retrieve current directory of openposeTest.py and add it into the model path 
 openpose_test_dir = os.path.join(os.path.dirname(__file__), "..", "openpose", "examples", "tutorial_api_python")
 sys.path.append(openpose_test_dir)
+
+# def statusIndication(path, image_filename):
+#     print(f"Processing image: {path}")
+    
+#     img0 = cv2.imread(path)
+#     if img0 is None:
+#         print(f"Failed to load image: {image_filename}")
+#         return
+    
+#     img0 = imutils.resize(img0, width=500)
+#     position = (10, 50)
+
+#     img0 = cv2.putText(
+#         img0, 
+#         "Detected",
+#         position,
+#         cv2.FONT_HERSHEY_SIMPLEX,
+#         1,
+#         (255, 255, 255),
+#     )
+#     cv2.imshow("Detected image", img0)
+#     cv2.waitKey(0)
+    
 
 def get_latest_excel_file(base_directory):
     excel_version = 1
@@ -65,24 +89,20 @@ def read_keypoints_from_excel(filename):
     sheet = workbook.active
 
     # Loop through all rows in the sheet
-    for row in sheet.iter_rows(min_row=2, values_only=True):  # Skip the header row (min_row=2)
-        saved_filename = row[0]
-        right_x_coordinate = row[1]
-        right_y_coordinate = row[2]
-        left_x_coordinate = row[3]
-        left_y_coordinate = row[4]
-
-        # Check if the saved_filename matches the provided filename
-        if saved_filename == filename:
-            keypoints_data.append({
-                'filename': saved_filename,
-                'right_x': right_x_coordinate,
-                'right_y': right_y_coordinate,
-                'left_x': left_x_coordinate,
-                'left_y': left_y_coordinate
-            })
-
-    return keypoints_data
+    for row in sheet.iter_rows(min_row=2, values_only=True):
+        data = {
+            'filename': row[0],
+            'right_x1': row[1],
+            'right_y1': row[2],
+            'right_x2': row[3],
+            'right_y2': row[4],
+            'left_x1': row[5],
+            'left_y1': row[6],
+            'left_x2': row[7],
+            'left_y2': row[8]
+        }        
+        keypoints_data.append(data)
+        return keypoints_data
 
 def detect(save_img=False):
 
@@ -214,14 +234,18 @@ def detect(save_img=False):
                 if keypoints_data:
                 # Loop through the keypoints data for the current image
                     for data in keypoints_data:
-                        right_x_coordinate = data['right_x']
-                        right_y_coordinate = data['right_y']
-                        left_x_coordinate = data['left_x']
-                        left_y_coordinate = data['left_y']
-
-                        # Do something with the data, e.g., compare keypoints with your detections
-                        print(f"Right Keypoint coordinate: ({right_x_coordinate}, {right_y_coordinate})")
-                        print(f"Left Keypoint coordinate: ({left_x_coordinate}, {left_y_coordinate})")
+                        right_buffer_x1= data['right_x1']
+                        right_buffer_y1 = data['right_y1']
+                        right_buffer_x2 = data['right_x2']
+                        right_buffer_y2 = data['right_y2']
+                        left_buffer_x1 = data['left_x1']
+                        left_buffer_y1 = data['left_y1']
+                        left_buffer_x2 = data['left_x2']
+                        left_buffer_y2 = data['left_y2']
+                        
+                        # # (not correct) Do something with the data, e.g., compare keypoints with your detections 
+                        # print(f"Right Hand Buffer coordinate: ({right_buffer_x1_coordinate}, {right_buffer_y1_coordinate})")
+                        # print(f"Left Hand Buffer coordinate: ({left_x_coordinate}, {left_y_coordinate})")
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
@@ -233,7 +257,7 @@ def detect(save_img=False):
 
                     if save_img or view_img:  # Add bbox to image
                         label = f'{names[int(cls)]} {conf:.2f}'
-                        plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
+                        plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=2)
 
                     # cls.item() == 73.0 means that it is a book
                     if cls.item() == 73.0:
@@ -243,12 +267,22 @@ def detect(save_img=False):
                         # Print the bounding box coordinates and confidence score
                         print(f"Bounding Box Coordinates: ({x1}, {y1}), ({x2}, {y2}), {conf.item()}")
 
-                        # Dictionary to store keypoints and their coordinates
-                        keypoints = {'right': (right_x_coordinate, right_x_coordinate), 'left': (left_x_coordinate, left_y_coordinate)}
+                        # Dictionary to store buffer coordinates for left and right keypoints
+                        buffers = {
+                            'left': {'x1': left_buffer_x1, 'y1': left_buffer_y1, 'x2': left_buffer_x2, 'y2': left_buffer_y2},
+                            'right': {'x1': right_buffer_x1, 'y1': right_buffer_y1, 'x2': right_buffer_x2, 'y2': right_buffer_y2}
+                        }
 
-                        for keypoint_name, (keypoint_x, keypoint_y) in keypoints.items():
-                            if x1 <= keypoint_x <= x2 and y1 <= keypoint_y <= y2:
+                        # Compare each buffer with the YOLO bounding box
+                        for keypoint_name, buffer_coords in buffers.items():
+                            buffer_x1, buffer_y1, buffer_x2, buffer_y2 = buffer_coords['x1'], buffer_coords['y1'], buffer_coords['x2'], buffer_coords['y2']
+                            if (x1 <= buffer_x1 <= x2 and y1 <= buffer_y1 <= y2) or \
+                                (x1 <= buffer_x2 <= x2 and y1 <= buffer_y1 <= y2) or \
+                                (x1 <= buffer_x1 <= x2 and y1 <= buffer_y2 <= y2) or \
+                                (x1 <= buffer_x2 <= x2 and y1 <= buffer_y2 <= y2):
                                 print(f"The {keypoint_name} keypoint is inside the bounding box.")
+                                cv2.putText(im0, "Holding book", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1,(0, 0, 0))
+                                cv2.imshow("Detected image", im0)
                             else:
                                 print(f"The {keypoint_name} keypoint is outside the bounding box.")
 
