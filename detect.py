@@ -13,11 +13,13 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
+from shapely.geometry import Polygon, Point
 
 import sys
 import os
 import openpyxl
 import imutils
+import natsort
 
 # retrieve current directory of openposeTest.py and add it into the model path 
 openpose_test_dir = os.path.join(os.path.dirname(__file__), "..", "openpose", "examples", "tutorial_api_python")
@@ -174,7 +176,10 @@ def detect(save_img=False):
     old_img_b = 1
 
     t0 = time.time()
-    for path, img, im0s, vid_cap in dataset:
+    # Sort the files by name before processing
+    file_list = natsort.natsorted(dataset, key=lambda x: x[0])
+
+    for path, img, im0s, vid_cap in file_list:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -242,10 +247,6 @@ def detect(save_img=False):
                         left_buffer_y1 = data['left_y1']
                         left_buffer_x2 = data['left_x2']
                         left_buffer_y2 = data['left_y2']
-                        
-                        # # (not correct) Do something with the data, e.g., compare keypoints with your detections 
-                        # print(f"Right Hand Buffer coordinate: ({right_buffer_x1_coordinate}, {right_buffer_y1_coordinate})")
-                        # print(f"Left Hand Buffer coordinate: ({left_x_coordinate}, {left_y_coordinate})")
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
@@ -283,9 +284,33 @@ def detect(save_img=False):
                                 print(f"The {keypoint_name} keypoint is inside the bounding box.")
                                 cv2.putText(im0, "Holding book", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1,(0, 0, 0))
                                 cv2.imshow("Detected image", im0)
+
+                                # #Test
+                                # Define the bookshelf polygons as lists of (x, y) coordinates
+                                bookshelf1_coords = [(463,-1),(534,223),(138,369),(135,332)]
+                                bookshelf2_coords = [(139,377),(137,423),(539,549),(534,237)]
+
+                                # Create Polygon objects for the bookshelf regions
+                                bookshelf1_polygon = Polygon(bookshelf1_coords)
+                                bookshelf2_polygon = Polygon(bookshelf2_coords)
+
+                                # Create a Point object for the center of the book's bounding box
+                                book_center = Point((x1 + x2) / 2, (y1 + y2) / 2)
+
+                                # Check if the book's center point is inside a bookshelf polygon
+                                if bookshelf1_polygon.contains(book_center):
+                                    print("The book is inside bookshelf 1.")
+                                    cv2.putText(im0, "From Shelf 1", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
+
+                                elif bookshelf2_polygon.contains(book_center):
+                                    print("The book is inside bookshelf 2.")
+                                    cv2.putText(im0, "From Shelf 2", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
+                                else:
+                                    print("The book is outside any bookshelf.")
+                                    cv2.putText(im0, "Book outside bookshelves", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
                             else:
                                 print(f"The {keypoint_name} keypoint is outside the bounding box.")
-
+                    
                     # else:
                     #     print("There is no book in the image.")
 

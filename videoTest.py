@@ -21,7 +21,7 @@ try:
 except OSError:
     print("Error: Creating Directory of Data")
 
-desired_time_interval = 1  # Set the desired time interval in seconds (e.g., 2 seconds)
+desired_time_interval = 0.25  # Set the desired time interval in seconds (e.g., 2 seconds)
 fps = video.get(cv2.CAP_PROP_FPS)
 frame_interval = int(fps * desired_time_interval)
 current_frame = 0
@@ -35,6 +35,13 @@ while True:
 
             resize = imutils.resize(frame, width=(int(frame.shape[1] / 2)), height=(int(frame.shape[0] / 2)))
             cv2.imwrite(name, resize)
+            
+            cv2.imshow('Video', resize)  # Display the video frame
+
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q') or cv2.getWindowProperty('Video', cv2.WND_PROP_VISIBLE) < 1:  
+            # Press 'q' or close the window to exit
+            break
 
         current_frame += 1
     else:
