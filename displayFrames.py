@@ -22,13 +22,17 @@ image_files.sort(key=extract_frame_number)
 first_frame = cv2.imread(image_files[0])
 frame_height, frame_width, _ = first_frame.shape
 
-# Create a window for displaying frames and set its size to match the frame
+# Calculate the smaller window dimensions (e.g., 50% smaller)
+smaller_frame_height = int(frame_height * 0.5)
+smaller_frame_width = int(frame_width * 0.5)
+
+# Create a window for displaying frames and set its size to be smaller
 cv2.namedWindow('Display Frames', cv2.WINDOW_NORMAL)
-cv2.resizeWindow('Display Frames', frame_width, frame_height)
+cv2.resizeWindow('Display Frames', smaller_frame_width, smaller_frame_height)
 
 # Define the initial frame rate and delay
 frame_rate = 30
-delay = int(10000 / frame_rate)  # Delay in milliseconds
+delay = int(1000 / frame_rate)  # Delay in milliseconds
 
 # Loop through the image files and display each frame
 for image_file in image_files:
