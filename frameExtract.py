@@ -8,7 +8,7 @@ import datetime
 today = str(date.today())
 
 ## Directory Manage
-os.chdir("../yolov7") # direct to the yolov7 folder
+os.chdir("yolov7") # direct to the yolov7 folder
 
 current_path = os.path.dirname(os.path.abspath(__file__)) # ..\AiLibrary\yolov7
 parent_path = os.path.dirname(current_path) # ..\AiLibrary
@@ -57,7 +57,7 @@ def frameExtract(input, output):
     original_fps = int(cap.get(cv2.CAP_PROP_FPS))
 
     # Calculate the desired time interval between frames (0.25 seconds)
-    desired_time_interval = 3  # in seconds = 0.25
+    desired_time_interval = 0.25  # in seconds = 0.25
 
     # Calculate the frame interval based on the desired time interval
     frame_interval = int(original_fps * desired_time_interval)
