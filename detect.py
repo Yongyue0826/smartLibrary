@@ -6,6 +6,7 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
+import numpy as np
 
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
@@ -20,33 +21,12 @@ import os
 import openpyxl
 import imutils
 import natsort
+import csv
 
 # retrieve current directory of openposeTest.py and add it into the model path 
 openpose_test_dir = os.path.join(os.path.dirname(__file__), "..", "openpose", "examples", "tutorial_api_python")
 sys.path.append(openpose_test_dir)
 
-# def statusIndication(path, image_filename):
-#     print(f"Processing image: {path}")
-    
-#     img0 = cv2.imread(path)
-#     if img0 is None:
-#         print(f"Failed to load image: {image_filename}")
-#         return
-    
-#     img0 = imutils.resize(img0, width=500)
-#     position = (10, 50)
-
-#     img0 = cv2.putText(
-#         img0, 
-#         "Detected",
-#         position,
-#         cv2.FONT_HERSHEY_SIMPLEX,
-#         1,
-#         (255, 255, 255),
-#     )
-#     cv2.imshow("Detected image", img0)
-#     cv2.waitKey(0)
-    
 
 def get_latest_excel_file(base_directory):
     excel_version = 1
@@ -105,6 +85,41 @@ def read_keypoints_from_excel(filename):
         }        
         keypoints_data.append(data)
         return keypoints_data
+
+# Read the shelf data from the CSV file with an optional maximum limit
+def read_shelf_data(file_path):
+    with open(file_path, 'r') as csv_file:
+        reader = csv.DictReader(csv_file)
+        
+        # Initialize lists to store names and coordinates
+        max_shelf = 3
+        shelf_names = []
+        shelf_polygons = []
+        
+        for row in reader:
+            if max_shelf is not None and len(shelf_polygons) >= max_shelf:
+                break  # Stop processing if the maximum number of coordinates is reached
+            
+            shelf_name = row['name']
+            shelf_coords = []
+            
+            # Extract 'x' and 'y' coordinates dynamically
+            for i in range(1, 10):  # Adjust the range as needed for the maximum expected coordinates
+                key_x = f'x{i}'
+                key_y = f'y{i}'
+                
+                # Check if both 'x' and 'y' keys exist in the row and are not None
+                if key_x in row and key_y in row and row[key_x] is not None and row[key_y] is not None:
+                    shelf_coords.append((float(row[key_x]), float(row[key_y])))
+                else:
+                    break  # Stop processing if either 'x' or 'y' is missing or invalid
+            
+            # Create a Polygon object only if there are valid coordinates
+            if shelf_coords:
+                shelf_names.append(shelf_name)
+                shelf_polygons.append(Polygon(shelf_coords))
+    
+    return shelf_names, shelf_polygons
 
 def detect(save_img=False):
 
@@ -169,6 +184,12 @@ def detect(save_img=False):
     names = model.module.names if hasattr(model, 'module') else model.names
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
+    # Load shelf names and bookshelf coordinates from the CSV file
+    shelf_names, bookshelf_coords = read_shelf_data('bookshelf_config.csv')
+
+    # Create Polygon objects for the bookshelf regions
+    bookshelf_polygons = [Polygon(coords) for coords in bookshelf_coords]
+    
     # Run inference
     if device.type != 'cpu':
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
@@ -219,6 +240,13 @@ def detect(save_img=False):
             save_path = str(save_dir / p.name)  # img.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+
+            # Draw bookshelf polygons on the image
+            for shelf_polygon in bookshelf_polygons:
+                shelf_points = shelf_polygon.exterior.coords  # Get the polygon points
+                shelf_points = [(int(x), int(y)) for x, y in shelf_points]  # Convert to integer coordinates
+                cv2.polylines(im0, [np.array(shelf_points)], isClosed=True, color=(0, 255, 0), thickness=2)  # Draw polygon
+
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -274,6 +302,12 @@ def detect(save_img=False):
                             'right': {'x1': right_buffer_x1, 'y1': right_buffer_y1, 'x2': right_buffer_x2, 'y2': right_buffer_y2}
                         }
 
+                        # Load shelf names and bookshelf coordinates from the CSV file
+                        shelf_names, bookshelf_coords = read_shelf_data('bookshelf_config.csv')
+
+                        # Create Polygon objects for the bookshelf regions
+                        bookshelf_polygons = [Polygon(coords) for coords in bookshelf_coords]
+
                         # Compare each buffer with the YOLO bounding box
                         for keypoint_name, buffer_coords in buffers.items():
                             buffer_x1, buffer_y1, buffer_x2, buffer_y2 = buffer_coords['x1'], buffer_coords['y1'], buffer_coords['x2'], buffer_coords['y2']
@@ -284,33 +318,24 @@ def detect(save_img=False):
                                 print(f"The {keypoint_name} keypoint is inside the bounding box.")
                                 cv2.putText(im0, "Holding book", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1,(0, 0, 0))
                                 cv2.imshow("Detected image", im0)
-
-                                # #Test
-                                # Define the bookshelf polygons as lists of (x, y) coordinates
-                                bookshelf1_coords = [(463,-1),(534,223),(138,369),(135,332)]
-                                bookshelf2_coords = [(139,377),(137,423),(539,549),(534,237)]
-
-                                # Create Polygon objects for the bookshelf regions
-                                bookshelf1_polygon = Polygon(bookshelf1_coords)
-                                bookshelf2_polygon = Polygon(bookshelf2_coords)
+                                #cv2.waitKey(0)
 
                                 # Create a Point object for the center of the book's bounding box
                                 book_center = Point((x1 + x2) / 2, (y1 + y2) / 2)
 
-                                # Check if the book's center point is inside a bookshelf polygon
-                                if bookshelf1_polygon.contains(book_center):
-                                    print("The book is inside bookshelf 1.")
-                                    cv2.putText(im0, "From Shelf 1", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
+                                # Check if the book's center point is inside any bookshelf polygon
+                                for i, bookshelf_polygon in enumerate(bookshelf_polygons):
+                                    if bookshelf_polygon.contains(book_center):
+                                        print(f"The book is inside {shelf_names[i]}.")
+                                        cv2.putText(im0, f"From {shelf_names[i]}", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
+                                        break  # Exit the loop if the book is inside a bookshelf
 
-                                elif bookshelf2_polygon.contains(book_center):
-                                    print("The book is inside bookshelf 2.")
-                                    cv2.putText(im0, "From Shelf 2", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
                                 else:
                                     print("The book is outside any bookshelf.")
-                                    cv2.putText(im0, "Book outside bookshelves", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
+                                    cv2.putText(im0, "Book outside bookshelves", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
                             else:
                                 print(f"The {keypoint_name} keypoint is outside the bounding box.")
-                    
+
                     # else:
                     #     print("There is no book in the image.")
 
