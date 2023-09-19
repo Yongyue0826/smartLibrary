@@ -138,7 +138,7 @@ try:
 
    # Set the buffer rectangle size and line thickness
     buffer_width = 20  # Width of the buffer rectangle
-    buffer_height = 40  # Height of the buffer rectangle
+    buffer_height = 60  # Height of the buffer rectangle
     buffer_thickness = 2  # Thickness of the buffer rectangle line
 
     # Calculate buffer rectangle coordinates
@@ -156,8 +156,8 @@ try:
     # Draw buffer rectangle on the image
     new = cv2.rectangle(datum.cvOutputData, (right_buffer_x1, right_buffer_y1), (right_buffer_x2, right_buffer_y2), (0, 0, 255), buffer_thickness)
     new_1 = cv2.rectangle(new, (left_buffer_x1, left_buffer_y1), (left_buffer_x2, left_buffer_y2), (0, 0, 255), buffer_thickness)
-    new_2 = cv2.polylines(img=new_1, pts=[np.array([[463,-1],[534,223],[138,369],[135,332]], dtype=np.int32)], isClosed=True, color=(0,255,0), thickness=3)
-    new_3 = cv2.polylines(img=new_2, pts=[np.array([[139,377],[137,423],[539,549],[534,237]], dtype=np.int32)], isClosed=True, color=(255,0,0), thickness=3)
+    #new_2 = cv2.polylines(img=new_1, pts=[np.array([[463,-1],[534,223],[138,369],[135,332]], dtype=np.int32)], isClosed=True, color=(0,255,0), thickness=3)
+    #new_3 = cv2.polylines(img=new_2, pts=[np.array([[139,377],[137,423],[539,549],[534,237]], dtype=np.int32)], isClosed=True, color=(255,0,0), thickness=3)
 
     #cv2.imshow("Image with Buffer Rectangle", new)
     cv2.waitKey(0)
@@ -179,7 +179,7 @@ try:
     saved_path = os.path.join(folder_dir, saved_filename)
 
     # Your existing code for saving the image
-    result = cv2.imwrite(saved_path, new_3)
+    result = cv2.imwrite(saved_path, new)
 
     # Write keypoints to Excel file
     right_buffer_coords = (right_buffer_x1, right_buffer_y1, right_buffer_x2, right_buffer_y2)
